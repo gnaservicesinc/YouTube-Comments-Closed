@@ -81,12 +81,26 @@ export async function publishStore({ env = process.env, version, archive, fetchI
     body: authBody,
   });
   if (!token.access_token) throw new Error('Authentication returned no access token');
-  const resource = `publishers/${publisherId}/items/${extensionId}`;
-  const base = `https://chromewebstore.googleapis.com/v2/${resource}`;
+  let activePublisherId = publisherId;
   const headers = { Authorization: `Bearer ${token.access_token}` };
-  const upload = await request('Upload', `https://chromewebstore.googleapis.com/upload/v2/${resource}:upload`, {
-    method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
-  });
+  let upload;
+  try {
+    upload = await request('Upload', `https://chromewebstore.googleapis.com/upload/v2/publishers/${activePublisherId}/items/${extensionId}:upload`, {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
+    });
+  } catch (error) {
+    const defaultPublisherId = '6738fee0-cfcd-45fe-ae53-e1a0af32b9de';
+    if (error.message.includes('HTTP 403') && activePublisherId !== defaultPublisherId && extensionId === 'ecmhkbgdoeeicpohpleinhgmdfliedak') {
+      activePublisherId = defaultPublisherId;
+      upload = await request('Upload (AlastAndy fallback)', `https://chromewebstore.googleapis.com/upload/v2/publishers/${activePublisherId}/items/${extensionId}:upload`, {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
+      });
+    } else {
+      throw error;
+    }
+  }
+  const resource = `publishers/${activePublisherId}/items/${extensionId}`;
+  const base = `https://chromewebstore.googleapis.com/v2/${resource}`;
   if (upload.crxVersion && upload.crxVersion !== version) throw new Error('Uploaded version does not match the release');
   let state = upload.uploadState;
   for (let i = 0; ['IN_PROGRESS', 'UPLOAD_IN_PROGRESS'].includes(state) && i < 30; i += 1) {
