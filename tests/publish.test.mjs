@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { generateKeyPairSync } from 'node:crypto';
 import { test } from 'node:test';
 import { publishStore } from '../scripts/publish-store.mjs';
 
@@ -61,4 +62,27 @@ test('HTTP 200 publish errors and unexpected review states fail the release', as
   for (const result of [{ error: { message: 'validation failed' } }, { state: 'DRAFT' }, { state: 'STAGED' }]) {
     await assert.rejects(run([{ access_token: 'test-access' }, { uploadState: 'SUCCEEDED' }, result]).promise);
   }
+});
+test('Service account JSON (CWS_SERVICE_ACCOUNT_JSON) authenticates via signed JWT assertion', async () => {
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const serviceAccountJson = JSON.stringify({
+    client_email: 'publisher@example.iam.gserviceaccount.com',
+    private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }),
+  });
+  const saEnv = {
+    CWS_PUBLISHER_ID: 'publisher-id',
+    CWS_EXTENSION_ID: 'ecmhkbgdoeeicpohpleinhgmdfliedak',
+    CWS_SERVICE_ACCOUNT_JSON: serviceAccountJson,
+    GITHUB_REF_TYPE: 'tag',
+    GITHUB_REF_NAME: 'v1.1.0',
+  };
+  const { promise, calls } = run([
+    { access_token: 'sa-access' },
+    { uploadState: 'SUCCEEDED' },
+    { state: 'PENDING_REVIEW' },
+  ], { env: saEnv });
+  assert.equal((await promise).state, 'PENDING_REVIEW');
+  assert.equal(calls.length, 3);
+  assert.equal(calls[0].body.get('grant_type'), 'urn:ietf:params:oauth:grant-type:jwt-bearer');
+  assert.equal(calls[0].body.get('assertion').split('.').length, 3);
 });

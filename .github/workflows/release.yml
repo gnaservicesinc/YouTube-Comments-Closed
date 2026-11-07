@@ -41,27 +41,22 @@ jobs:
     env:
       CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID || secrets.CWS_PUBLISHER_ID || '6738fee0-cfcd-45fe-ae53-e1a0af32b9de' }}
       CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID || secrets.CWS_EXTENSION_ID || 'ecmhkbgdoeeicpohpleinhgmdfliedak' }}
+      CWS_SERVICE_ACCOUNT_JSON: ${{ secrets.CWS_SERVICE_ACCOUNT_JSON || vars.CWS_SERVICE_ACCOUNT_JSON }}
       CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID || vars.CWS_CLIENT_ID }}
       CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET || vars.CWS_CLIENT_SECRET }}
       CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN || vars.CWS_REFRESH_TOKEN }}
     steps:
-      - name: Missing CWS_CLIENT_ID
-        if: env.CWS_CLIENT_ID == ''
-        run: echo 'Missing CWS_CLIENT_ID in Actions secrets/variables.' >> "$GITHUB_STEP_SUMMARY"
-      - name: Missing CWS_CLIENT_SECRET
-        if: env.CWS_CLIENT_SECRET == ''
-        run: echo 'Missing CWS_CLIENT_SECRET in Actions secrets/variables.' >> "$GITHUB_STEP_SUMMARY"
-      - name: Missing CWS_REFRESH_TOKEN
-        if: env.CWS_REFRESH_TOKEN == ''
-        run: echo 'Missing CWS_REFRESH_TOKEN in Actions secrets/variables.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Note missing Store credentials
+        if: env.CWS_SERVICE_ACCOUNT_JSON == '' && (env.CWS_CLIENT_ID == '' || env.CWS_CLIENT_SECRET == '' || env.CWS_REFRESH_TOKEN == '')
+        run: echo 'Missing CWS_SERVICE_ACCOUNT_JSON (or OAuth refresh-token secrets) in Actions secrets.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''
+        if: env.CWS_PUBLISHER_ID != '' && (env.CWS_SERVICE_ACCOUNT_JSON != '' || (env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''))
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''
+        if: env.CWS_PUBLISHER_ID != '' && (env.CWS_SERVICE_ACCOUNT_JSON != '' || (env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''))
         with:
           node-version: 22
       - run: npm run package
-        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''
+        if: env.CWS_PUBLISHER_ID != '' && (env.CWS_SERVICE_ACCOUNT_JSON != '' || (env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''))
       - name: Upload and submit for automatic publication after review
-        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''
+        if: env.CWS_PUBLISHER_ID != '' && (env.CWS_SERVICE_ACCOUNT_JSON != '' || (env.CWS_CLIENT_ID != '' && env.CWS_CLIENT_SECRET != '' && env.CWS_REFRESH_TOKEN != ''))
         run: npm run publish:store

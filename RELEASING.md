@@ -19,10 +19,10 @@ In this repository's (`https://github.com/gnaservicesinc/YouTube-Comments-Closed
 
 | Type | Name | Value |
 | --- | --- | --- |
-| Secret | `CWS_CLIENT_ID` | OAuth client ID |
-| Secret | `CWS_CLIENT_SECRET` | OAuth client secret |
-| Secret | `CWS_REFRESH_TOKEN` | Publisher-account refresh token |
-| Variable | `CWS_PUBLISHER_ID` | Publisher ID from Store dashboard → Publisher → Settings |
+| Secret | `CWS_SERVICE_ACCOUNT_JSON` | Google Cloud service-account JSON key (same as `PVT-RD`) |
+| Variable | `CWS_PUBLISHER_ID` | Publisher ID (`6738fee0-cfcd-45fe-ae53-e1a0af32b9de`, also set as workflow fallback) |
+
+*(Alternatively, OAuth refresh-token secrets `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, and `CWS_REFRESH_TOKEN` are also supported.)*
 
 The publisher ID is different from the extension ID. The workflow fixes the
 extension ID to the existing item. No publishing credentials were present when
