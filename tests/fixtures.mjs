@@ -2,9 +2,13 @@ import { randomUUID } from 'node:crypto';
 
 export const COMMENTS = 'engagement-panel-comments-section';
 export const SHORTS_COMMENTS = 'shorts-engagement-panel-comments-section';
+export const DESCRIPTION = 'engagement-panel-structured-description';
+export const ASK = 'PAyouchat';
 export const EXPANDED = 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED';
 export const HIDDEN = 'ENGAGEMENT_PANEL_VISIBILITY_HIDDEN';
 const COMMENT_TARGETS = [COMMENTS, SHORTS_COMMENTS, 'comments-section'];
+const DESCRIPTION_TARGETS = [DESCRIPTION];
+const ASK_TARGETS = [ASK, 'engagement-panel-youchat'];
 
 // These fixtures keep YouTube's close handler in the page's MAIN world. The
 // extension loads normally in Chrome's ISOLATED world, just as it does for users.
@@ -30,10 +34,30 @@ export function fixtureHTML(options = {}) {
   <toggle-button-view-model>
     <button-view-model class="ytSpecButtonViewModelHost ytSideRailViewModelButton">
       <label class="yt-spec-button-shape-with-label">
+        <button id="side-rail-description" role="tab" aria-label="Description">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg>
+        </button>
+        <div class="ytSpecButtonShapeWithLabelLabel">Description</div>
+      </label>
+    </button-view-model>
+  </toggle-button-view-model>
+  <toggle-button-view-model>
+    <button-view-model class="ytSpecButtonViewModelHost ytSideRailViewModelButton">
+      <label class="yt-spec-button-shape-with-label">
         <button id="side-rail-comments" role="tab" aria-label="Comments">
           <svg viewBox="0 0 24 24"><path d="M12 2c5.523 0 10 4.253 10 9.5 0 2.138-.744 4.11-1.999 5.698l1.622 2.433a1.1 1.1 0 01-.915 1.71l-3.285.001C15.862 21.604 13.989 22 12 22Z"></path></svg>
         </button>
         <div class="ytSpecButtonShapeWithLabelLabel">Comments</div>
+      </label>
+    </button-view-model>
+  </toggle-button-view-model>
+  <toggle-button-view-model>
+    <button-view-model class="ytSpecButtonViewModelHost ytSideRailViewModelButton">
+      <label class="yt-spec-button-shape-with-label">
+        <button id="side-rail-ask" role="tab" aria-label="Ask">
+          <svg viewBox="0 0 24 24"><polygon points="12,2 15,9 22,12 15,15 12,22 9,15 2,12 9,9"></polygon></svg>
+        </button>
+        <div class="ytSpecButtonShapeWithLabelLabel">Ask</div>
       </label>
     </button-view-model>
   </toggle-button-view-model>
@@ -68,8 +92,14 @@ export function fixtureHTML(options = {}) {
 (() => {
   const options = ${config};
   const commentTargets = ${JSON.stringify(COMMENT_TARGETS)};
+  const descriptionTargets = ${JSON.stringify(DESCRIPTION_TARGETS)};
+  const askTargets = ${JSON.stringify(ASK_TARGETS)};
   const isCommentsPanel = panel =>
     commentTargets.includes(panel.getAttribute('target-id')) || commentTargets.includes(panel.id);
+  const isDescriptionPanel = panel =>
+    descriptionTargets.includes(panel.getAttribute('target-id')) || descriptionTargets.includes(panel.id);
+  const isAskPanel = panel =>
+    askTargets.includes(panel.getAttribute('target-id')) || askTargets.includes(panel.id);
   const ready = new WeakSet();
   window.closeCalls = [];
   window.closeAttempts = [];
@@ -78,18 +108,37 @@ export function fixtureHTML(options = {}) {
   window.hydratePanel = panel => ready.add(panel);
   const host = document.querySelector('#panel-host');
   const watch = document.querySelector('ytd-watch-flexy');
+  if (options.sideRailDismissible) {
+    watch.setAttribute('side-rail-dismissible-panels', '');
+  }
   if (options.inlineHidden) {
     document.querySelector('#inline-host > ytd-comments')?.setAttribute('hidden', '');
   }
 
   window.updateLayout = () => {
     const open = [...host.querySelectorAll('ytd-engagement-panel-section-list-renderer')].some(panel =>
-      isCommentsPanel(panel) && panel.getAttribute('visibility') === '${EXPANDED}');
+      (isCommentsPanel(panel) ||
+       (options.sideRailDismissible && (isDescriptionPanel(panel) || isAskPanel(panel)))) &&
+      panel.getAttribute('visibility') === '${EXPANDED}');
     watch.toggleAttribute('comments-open', open);
     window.layoutChanges.push(open);
   };
 
-  window.addCloseControl = (panel, classic = false, outsideHeader = false) => {
+  window.addCloseControl = (panel, classic = false, outsideHeader = false, videoTitleHeader = false) => {
+    if (videoTitleHeader) {
+      const header = document.createElement('yt-video-title-header-view-model');
+      header.className = 'ytVideoTitleHeaderViewModelHost';
+      const wrapper = document.createElement('button-view-model');
+      wrapper.className = 'ytVideoTitleHeaderViewModelHeaderButton';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('aria-label', 'Close');
+      button.textContent = '×';
+      wrapper.append(button);
+      header.append(wrapper);
+      panel.querySelector('#content')?.prepend(header);
+      return button;
+    }
     let header = panel.querySelector('ytd-engagement-panel-title-header-renderer');
     if (!header) {
       header = document.createElement('ytd-engagement-panel-title-header-renderer');
@@ -115,7 +164,7 @@ export function fixtureHTML(options = {}) {
     panel.setAttribute('visibility', settings.visibility || '${EXPANDED}');
     panel.innerHTML = '<div id="content"><ytd-comments><p>Side panel comments</p></ytd-comments></div>';
     if (settings.control !== false) {
-      const button = window.addCloseControl(panel, settings.classic, settings.outsideHeader);
+      const button = window.addCloseControl(panel, settings.classic, settings.outsideHeader, settings.videoTitleHeader);
       button.disabled = Boolean(settings.disabled);
     }
     if (settings.legacyHidden) panel.style.setProperty('display', 'none', 'important');
@@ -127,15 +176,22 @@ export function fixtureHTML(options = {}) {
   };
 
   document.addEventListener('click', event => {
-    const toggleControl = event.target.closest('#side-rail-comments, #reel-comments, #quick-action-comments');
-    if (toggleControl) {
+    const sideRailToggle = event.target.closest('#side-rail-comments, #side-rail-description, #side-rail-ask, #reel-comments, #quick-action-comments');
+    if (sideRailToggle) {
+      const matchPanel = sideRailToggle.id === 'side-rail-description'
+        ? isDescriptionPanel
+        : sideRailToggle.id === 'side-rail-ask'
+          ? isAskPanel
+          : isCommentsPanel;
       for (const panel of host.querySelectorAll('ytd-engagement-panel-section-list-renderer')) {
-        if (isCommentsPanel(panel)) {
+        if (matchPanel(panel)) {
           const expanded = panel.getAttribute('visibility') === '${EXPANDED}';
           panel.setAttribute('visibility', expanded ? '${HIDDEN}' : '${EXPANDED}');
           if (expanded) {
             window.closeCalls.push({ key: panel.dataset.testKey, expanded: true });
           }
+        } else if (options.sideRailDismissible && (isCommentsPanel(panel) || isDescriptionPanel(panel) || isAskPanel(panel))) {
+          panel.setAttribute('visibility', '${HIDDEN}');
         }
       }
       window.updateLayout();
@@ -150,7 +206,7 @@ export function fixtureHTML(options = {}) {
       window.updateLayout();
       return;
     }
-    const button = event.target.closest('#visibility-button button, yt-icon-button#close-button button');
+    const button = event.target.closest('#visibility-button button, yt-icon-button#close-button button, yt-video-title-header-view-model button');
     const panel = button?.closest('ytd-engagement-panel-section-list-renderer');
     if (!panel) return;
     const key = panel.dataset.testKey;

@@ -1,5 +1,5 @@
-/* Native comment entry points stay available. A deliberate click reveals both
-   inline comments and engagement panels until the next video. */
+/* Native comment, description, and ask entry points stay available. A deliberate
+   click reveals the chosen section or engagement panel. */
 :root:not([data-ycc-comments-open]) ytd-comments {
   display: none !important;
 }
@@ -9,7 +9,19 @@
 :root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer[target-id="shorts-engagement-panel-comments-section"],
 :root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#shorts-engagement-panel-comments-section,
 :root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer[target-id="comments-section"],
-:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#comments-section {
+:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#comments-section,
+:root:not([data-ycc-ask-open]) ytd-engagement-panel-section-list-renderer[target-id="PAyouchat"],
+:root:not([data-ycc-ask-open]) ytd-engagement-panel-section-list-renderer#PAyouchat,
+:root:not([data-ycc-ask-open]) ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-youchat"],
+:root:not([data-ycc-ask-open]) ytd-engagement-panel-section-list-renderer#engagement-panel-youchat,
+:root:not([data-ycc-description-open]) ytd-watch-flexy[side-rail-dismissible-panels] ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-structured-description"],
+:root:not([data-ycc-description-open]) ytd-watch-flexy[side-rail-dismissible-panels] ytd-engagement-panel-section-list-renderer#engagement-panel-structured-description,
+:root:not([data-ycc-description-open]) ytd-watch-flexy[fixed-default-panels] ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-structured-description"],
+:root:not([data-ycc-description-open]) ytd-watch-flexy[fixed-default-panels] ytd-engagement-panel-section-list-renderer#engagement-panel-structured-description,
+:root:not([data-ycc-description-open]) ytd-watch-flexy[show-fixed-side-menu] ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-structured-description"],
+:root:not([data-ycc-description-open]) ytd-watch-flexy[show-fixed-side-menu] ytd-engagement-panel-section-list-renderer#engagement-panel-structured-description,
+:root:not([data-ycc-description-open]) ytd-watch-flexy[use-engagement-panel-for-structured-description] ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-structured-description"],
+:root:not([data-ycc-description-open]) ytd-watch-flexy[use-engagement-panel-for-structured-description] ytd-engagement-panel-section-list-renderer#engagement-panel-structured-description {
   visibility: hidden !important;
   pointer-events: none !important;
 }

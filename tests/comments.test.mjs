@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { COMMENTS, EXPANDED, HIDDEN, SHORTS_COMMENTS, openFixture } from './fixtures.mjs';
+import { ASK, COMMENTS, DESCRIPTION, EXPANDED, HIDDEN, SHORTS_COMMENTS, openFixture } from './fixtures.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let context;
@@ -398,4 +398,88 @@ test('player quick-action comment button, comment teaser, and unlabeled action c
   await page.waitForFunction(() => !document.documentElement.hasAttribute('data-ycc-comments-open'));
   await page.locator('#side-rail-unlabeled').click();
   await staysOpen(page);
+});
+
+test('Side Rail auto-opened Description (yt-video-title-header-view-model) and Ask (PAyouchat) start closed and open on click', async t => {
+  const page = await openFixture(context, t, {
+    sideRailDismissible: true,
+    panels: [
+      { key: 'comments', target: COMMENTS, visibility: HIDDEN },
+      { key: 'description', target: DESCRIPTION, videoTitleHeader: true, visibility: EXPANDED },
+      { key: 'ask', target: ASK, visibility: EXPANDED },
+    ],
+  });
+  await closed(page, 'description');
+  await closed(page, 'ask');
+  await restored(page);
+
+  await page.locator('#side-rail-description').click();
+  await page.waitForFunction(expanded =>
+    document.querySelector('[data-test-key="description"]')?.getAttribute('visibility') === expanded &&
+    document.documentElement.hasAttribute('data-ycc-description-open'), EXPANDED);
+  assert.equal(await page.locator('[data-test-key="description"]').evaluate(el => getComputedStyle(el).visibility), 'visible');
+
+  await page.locator('#side-rail-ask').click();
+  await page.waitForFunction(({ expanded, hidden }) =>
+    document.querySelector('[data-test-key="ask"]')?.getAttribute('visibility') === expanded &&
+    document.querySelector('[data-test-key="description"]')?.getAttribute('visibility') === hidden &&
+    document.documentElement.hasAttribute('data-ycc-ask-open') &&
+    !document.documentElement.hasAttribute('data-ycc-description-open'), { expanded: EXPANDED, hidden: HIDDEN });
+
+  await page.locator('#side-rail-comments').click();
+  await staysOpen(page);
+  assert.equal(await page.locator('[data-test-key="ask"]').getAttribute('visibility'), HIDDEN);
+
+  await page.locator('#side-rail-comments').click();
+  await page.waitForFunction(hidden =>
+    document.querySelector('[data-test-key="comments"]')?.getAttribute('visibility') === hidden &&
+    !document.documentElement.hasAttribute('data-ycc-comments-open'), HIDDEN);
+});
+
+test('clicking a Side Rail toggle button while the panel is still EXPANDED before hydration recovers and opens', async t => {
+  const page = await openFixture(context, t, { panels: [{ hydrationDelay: 5000 }] });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-test-key="comments"]')).visibility === 'hidden');
+  await page.locator('#side-rail-comments').click();
+  await staysOpen(page);
+});
+
+test('panel mode setting defaults to always-closed and supports remember across Watch videos', async t => {
+  const page = await openFixture(context, t, {
+    sideRailDismissible: true,
+    panels: [
+      { key: 'comments', target: COMMENTS, visibility: EXPANDED },
+      { key: 'description', target: DESCRIPTION, videoTitleHeader: true, visibility: HIDDEN },
+    ],
+  }, '/watch?v=video-1');
+  await closed(page, 'comments');
+  await page.evaluate(() => localStorage.setItem('ycc-panel-mode', 'remember'));
+  await page.locator('#side-rail-description').click();
+  await page.waitForFunction(expanded =>
+    document.querySelector('[data-test-key="description"]')?.getAttribute('visibility') === expanded &&
+    document.documentElement.hasAttribute('data-ycc-description-open'), EXPANDED);
+
+  // Navigate to video-2 where YouTube tries to auto-open comments and bump description.
+  await page.evaluate(({ expanded, hidden }) => {
+    history.pushState({}, '', '/watch?v=video-2');
+    document.querySelector('[data-test-key="description"]').setAttribute('visibility', hidden);
+    document.querySelector('[data-test-key="comments"]').setAttribute('visibility', expanded);
+    window.updateLayout();
+    document.dispatchEvent(new Event('yt-navigate-finish'));
+  }, { expanded: EXPANDED, hidden: HIDDEN });
+
+  await page.waitForFunction(({ expanded, hidden }) =>
+    document.querySelector('[data-test-key="comments"]')?.getAttribute('visibility') === hidden &&
+    document.querySelector('[data-test-key="description"]')?.getAttribute('visibility') === expanded &&
+    document.documentElement.hasAttribute('data-ycc-description-open'), { expanded: EXPANDED, hidden: HIDDEN });
+
+  // Switching back to always-closed resets all panels on the next video.
+  await page.evaluate(() => {
+    localStorage.setItem('ycc-panel-mode', 'always-closed');
+    history.pushState({}, '', '/watch?v=video-3');
+    document.dispatchEvent(new Event('yt-navigate-finish'));
+  });
+  await page.waitForFunction(hidden =>
+    document.querySelector('[data-test-key="description"]')?.getAttribute('visibility') === hidden &&
+    !document.documentElement.hasAttribute('data-ycc-description-open'), HIDDEN);
+  await restored(page);
 });

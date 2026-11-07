@@ -9,8 +9,21 @@
 <body>
   <img src="icons/icon-48.png" width="48" height="48" alt="">
   <h1>Comments, on your terms.</h1>
-  <p>Comments start closed on each video. Click YouTube’s comments button or <strong>Show comments</strong> to open them.</p>
-  <p>The next video starts closed again.</p>
-  <footer>YouTube Comments Closed · 1.1.1</footer>
+  <p>Comments, Description, and Ask side panels start closed so the video gets the full screen. Click any button or <strong>Show comments</strong> to open them.</p>
+  <form id="settings-form">
+    <fieldset>
+      <legend>When moving to a new video</legend>
+      <label for="mode-always-closed" class="option-label">
+        <input type="radio" id="mode-always-closed" name="panelMode" value="always-closed" class="visually-hidden" checked>
+        <span><strong>Always start closed</strong> — start every video with Comments, Description, and Ask closed</span>
+      </label>
+      <label for="mode-remember" class="option-label">
+        <input type="radio" id="mode-remember" name="panelMode" value="remember" class="visually-hidden">
+        <span><strong>Remember open panel</strong> — keep your opened panel across videos until you close it</span>
+      </label>
+    </fieldset>
+  </form>
+  <footer>YouTube Comments Closed · 1.1.3</footer>
+  <script src="popup.js"></script>
 </body>
 </html>
