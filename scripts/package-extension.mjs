@@ -15,7 +15,7 @@ if (pkg.version !== manifest.version) throw new Error('package.json and manifest
 if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `v${manifest.version}`) {
   throw new Error(`Release tag must be v${manifest.version}`);
 }
-const files = ['manifest.json', 'content.js', 'content.css', 'popup.html', 'popup.css', 'popup.js'];
+const files = ['manifest.json', 'content.js', 'content.css', 'popup.html', 'popup.css', 'popup.js', 'options.html'];
 
 await rm(folder, { recursive: true, force: true });
 await rm(archive, { force: true });

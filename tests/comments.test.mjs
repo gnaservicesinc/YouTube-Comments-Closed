@@ -483,3 +483,17 @@ test('panel mode setting defaults to always-closed and supports remember across 
     !document.documentElement.hasAttribute('data-ycc-description-open'), HIDDEN);
   await restored(page);
 });
+
+test('YouTube /account settings page renders the extension settings card and updates panel mode', async t => {
+  const page = await openFixture(context, t, {}, '/account');
+  await page.evaluate(() => {
+    const container = document.createElement('div');
+    container.setAttribute('data-ycc-settings-container', '');
+    document.body.append(container);
+  });
+  await page.locator('section[data-ycc-settings-card]').waitFor({ state: 'visible' });
+  await page.locator('#ycc-setting-remember').check();
+  assert.equal(await page.evaluate(() => localStorage.getItem('ycc-panel-mode')), 'remember');
+  await page.locator('#ycc-setting-always-closed').check();
+  assert.equal(await page.evaluate(() => localStorage.getItem('ycc-panel-mode')), 'always-closed');
+});

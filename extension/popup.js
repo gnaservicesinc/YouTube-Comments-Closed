@@ -5,6 +5,18 @@
   const MODE_ALWAYS_CLOSED = "always-closed";
   const MODE_REMEMBER = "remember";
   const form = document.getElementById("settings-form");
+  const versionLabel = document.getElementById("version-label");
+  const openSettingsButton = document.getElementById("open-settings");
+  const saveStatus = document.getElementById("save-status");
+
+  if (versionLabel && globalThis.chrome?.runtime?.getManifest) {
+    try {
+      const version = chrome.runtime.getManifest()?.version;
+      if (version) versionLabel.textContent = version;
+    } catch {
+      // Keep fallback HTML version.
+    }
+  }
 
   function normalizeMode(value) {
     return value === MODE_REMEMBER ? MODE_REMEMBER : MODE_ALWAYS_CLOSED;
@@ -12,9 +24,18 @@
 
   function getSavedMode() {
     try {
-      return normalizeMode(localStorage.getItem(MODE_STORAGE_KEY));
+      const raw = localStorage.getItem(MODE_STORAGE_KEY);
+      return raw === null ? null : normalizeMode(raw);
     } catch {
-      return MODE_ALWAYS_CLOSED;
+      return null;
+    }
+  }
+
+  function saveLocalMode(mode) {
+    try {
+      localStorage.setItem(MODE_STORAGE_KEY, mode);
+    } catch {
+      // Ignore storage errors in restricted environments.
     }
   }
 
@@ -40,19 +61,61 @@
     }
   }
 
-  const initialMode = getSavedMode();
-  applyModeToForm(initialMode);
-  void broadcastMode(initialMode);
+  async function syncInitialMode() {
+    const saved = getSavedMode();
+    if (saved !== null) {
+      applyModeToForm(saved);
+      await broadcastMode(saved);
+      return;
+    }
+    if (globalThis.chrome?.tabs?.query) {
+      try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+          if (typeof tab.id !== "number") continue;
+          try {
+            const response = await chrome.tabs.sendMessage(tab.id, { type: "ycc-get-mode" });
+            if (response?.ok && response.mode) {
+              const mode = normalizeMode(response.mode);
+              saveLocalMode(mode);
+              applyModeToForm(mode);
+              return;
+            }
+          } catch {
+            // Ignore non-YouTube tabs.
+          }
+        }
+      } catch {
+        // Ignore tab query errors.
+      }
+    }
+    applyModeToForm(MODE_ALWAYS_CLOSED);
+  }
+
+  void syncInitialMode();
 
   form?.addEventListener("change", event => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.name !== "panelMode") return;
     const mode = normalizeMode(target.value);
-    try {
-      localStorage.setItem(MODE_STORAGE_KEY, mode);
-    } catch {
-      // Ignore storage errors in restricted environments.
-    }
+    saveLocalMode(mode);
     void broadcastMode(mode);
+    if (saveStatus) {
+      saveStatus.textContent = "Setting saved.";
+    }
+  });
+
+  window.addEventListener("storage", event => {
+    if (event.key === MODE_STORAGE_KEY && event.newValue) {
+      applyModeToForm(normalizeMode(event.newValue));
+    }
+  });
+
+  openSettingsButton?.addEventListener("click", () => {
+    if (globalThis.chrome?.runtime?.openOptionsPage) {
+      chrome.runtime.openOptionsPage();
+    } else {
+      window.open("options.html", "_blank", "noopener");
+    }
   });
 })();

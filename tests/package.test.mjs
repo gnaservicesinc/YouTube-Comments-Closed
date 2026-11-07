@@ -17,7 +17,7 @@ test('Store ZIP contains all declared toolbar icons and popup assets with matchi
   const archive = `dist/youtube-comments-closed-${manifest.version}-webstore.zip`;
   const entries = execFileSync('unzip', ['-Z1', archive], { cwd: root, encoding: 'utf8' }).trim().split('\n');
   assert.deepEqual(entries.filter(entry => !entry.endsWith('/')).sort(), [
-    'LICENSE', 'content.css', 'content.js', 'manifest.json', 'popup.css', 'popup.html', 'popup.js',
+    'LICENSE', 'content.css', 'content.js', 'manifest.json', 'options.html', 'popup.css', 'popup.html', 'popup.js',
     ...[16, 24, 32, 48, 128].map(size => `icons/icon-${size}.png`),
   ].sort());
   for (const group of [manifest.icons, manifest.action.default_icon]) {
@@ -32,7 +32,10 @@ test('Store ZIP contains all declared toolbar icons and popup assets with matchi
   assert.ok(entries.includes(manifest.action.default_popup));
   const popup = execFileSync('unzip', ['-p', archive, manifest.action.default_popup], { cwd: root, encoding: 'utf8' });
   assert.ok(popup.includes(pkg.version));
-  for (const name of ['manifest.json', 'content.js', 'content.css', 'popup.html', 'popup.css', 'popup.js']) {
+  assert.ok(entries.includes(manifest.options_ui.page));
+  const options = execFileSync('unzip', ['-p', archive, manifest.options_ui.page], { cwd: root, encoding: 'utf8' });
+  assert.ok(options.includes(pkg.version));
+  for (const name of ['manifest.json', 'content.js', 'content.css', 'popup.html', 'popup.css', 'popup.js', 'options.html']) {
     assert.deepEqual(execFileSync('unzip', ['-p', archive, name], { cwd: root }), await readFile(new URL(`../extension/${name}`, import.meta.url)));
   }
 });

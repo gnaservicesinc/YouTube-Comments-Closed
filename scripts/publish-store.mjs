@@ -83,18 +83,33 @@ export async function publishStore({ env = process.env, version, archive, fetchI
   if (!token.access_token) throw new Error('Authentication returned no access token');
   let activePublisherId = publisherId;
   const headers = { Authorization: `Bearer ${token.access_token}` };
+  async function uploadWithCancelIfPending(pubId, label) {
+    const uploadUrl = `https://chromewebstore.googleapis.com/upload/v2/publishers/${pubId}/items/${extensionId}:upload`;
+    try {
+      return await request(label, uploadUrl, {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
+      });
+    } catch (error) {
+      if (error.message.includes('FAILED_PRECONDITION')) {
+        await request('Cancel pending submission', `https://chromewebstore.googleapis.com/v2/publishers/${pubId}/items/${extensionId}:cancelSubmission`, {
+          method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+        });
+        await sleep(2000);
+        return await request(label, uploadUrl, {
+          method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
+        });
+      }
+      throw error;
+    }
+  }
   let upload;
   try {
-    upload = await request('Upload', `https://chromewebstore.googleapis.com/upload/v2/publishers/${activePublisherId}/items/${extensionId}:upload`, {
-      method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
-    });
+    upload = await uploadWithCancelIfPending(activePublisherId, 'Upload');
   } catch (error) {
     const defaultPublisherId = '6738fee0-cfcd-45fe-ae53-e1a0af32b9de';
     if (error.message.includes('HTTP 403') && activePublisherId !== defaultPublisherId && extensionId === 'ecmhkbgdoeeicpohpleinhgmdfliedak') {
       activePublisherId = defaultPublisherId;
-      upload = await request('Upload (AlastAndy fallback)', `https://chromewebstore.googleapis.com/upload/v2/publishers/${activePublisherId}/items/${extensionId}:upload`, {
-        method: 'POST', headers: { ...headers, 'Content-Type': 'application/zip' }, body: archive,
-      });
+      upload = await uploadWithCancelIfPending(activePublisherId, 'Upload (AlastAndy fallback)');
     } else {
       throw error;
     }

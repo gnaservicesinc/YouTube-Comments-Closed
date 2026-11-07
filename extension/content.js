@@ -163,12 +163,16 @@
     } catch {
       // Ignore storage quota or privacy-mode errors.
     }
+    syncSettingsCardRadios();
   }
 
   if (globalThis.chrome?.runtime?.onMessage) {
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message?.type === "ycc-set-mode") {
         setPanelMode(message.mode);
+        sendResponse({ ok: true, mode: panelMode });
+      } else if (message?.type === "ycc-get-mode") {
+        panelMode = getPanelMode();
         sendResponse({ ok: true, mode: panelMode });
       }
       return false;
@@ -178,6 +182,7 @@
   window.addEventListener("storage", event => {
     if (event.key === MODE_STORAGE_KEY) {
       panelMode = getPanelMode();
+      syncSettingsCardRadios();
     }
   });
 
@@ -435,6 +440,98 @@
     for (const button of document.querySelectorAll(`button[${TOGGLE_ATTRIBUTE}]`)) {
       if (!button.nextElementSibling?.matches("ytd-comments")) button.remove();
     }
+    updateSettingsCard();
+  }
+
+  function syncSettingsCardRadios() {
+    for (const card of document.querySelectorAll("section[data-ycc-settings-card]")) {
+      const radio = card.querySelector(`input[name="yccPanelMode"][value="${panelMode}"]`);
+      if (radio instanceof HTMLInputElement) radio.checked = true;
+    }
+  }
+
+  function updateSettingsCard() {
+    if (!location.pathname.startsWith("/account")) {
+      for (const card of document.querySelectorAll("section[data-ycc-settings-card]")) {
+        card.remove();
+      }
+      return;
+    }
+    const container = document.querySelector([
+      "ytd-page-manager ytd-section-list-renderer #contents",
+      "ytd-settings-options-renderer #contents",
+      "[data-ycc-settings-container]",
+    ].join(", "));
+    if (!container) return;
+    let card = container.querySelector("section[data-ycc-settings-card]");
+    if (!card) {
+      card = document.createElement("section");
+      card.setAttribute("data-ycc-settings-card", "");
+
+      const form = document.createElement("form");
+      const fieldset = document.createElement("fieldset");
+      const legend = document.createElement("legend");
+      legend.textContent = "YouTube Comments Closed — Side Rail & comments";
+      fieldset.append(legend);
+
+      const options = [
+        {
+          id: "ycc-setting-always-closed",
+          value: MODE_ALWAYS_CLOSED,
+          title: "Always start closed",
+          detail: " — start every video with Comments, Description, and Ask closed",
+        },
+        {
+          id: "ycc-setting-remember",
+          value: MODE_REMEMBER,
+          title: "Remember open panel",
+          detail: " — keep your opened panel across videos until you close it",
+        },
+      ];
+
+      for (const opt of options) {
+        const label = document.createElement("label");
+        label.htmlFor = opt.id;
+        label.className = "ycc-settings-option";
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.id = opt.id;
+        input.name = "yccPanelMode";
+        input.value = opt.value;
+        input.checked = panelMode === opt.value;
+
+        const text = document.createElement("span");
+        const strong = document.createElement("strong");
+        strong.textContent = opt.title;
+        text.append(strong, document.createTextNode(opt.detail));
+
+        label.append(input, text);
+        fieldset.append(label);
+      }
+
+      form.addEventListener("change", event => {
+        const target = event.target;
+        if (target instanceof HTMLInputElement && target.name === "yccPanelMode") {
+          setPanelMode(target.value);
+        }
+      });
+
+      form.append(fieldset);
+      card.append(form);
+      container.prepend(card);
+    }
+    syncSettingsCardRadios();
+  }
+
+  function finishDismissibleTransition() {
+    if (PANEL_KINDS.some(kind => openState[kind])) return;
+    const flexy = document.querySelector("ytd-watch-flexy.dismissible-panels-transitioning");
+    const columns = flexy?.querySelector("#columns") ||
+      document.querySelector("ytd-watch-flexy #columns.side-rail-transitioning");
+    if (columns && typeof TransitionEvent === "function") {
+      columns.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width", bubbles: true }));
+    }
   }
 
   document.addEventListener("click", event => {
@@ -583,6 +680,8 @@
       }
     }
 
+    finishDismissibleTransition();
+
     for (const kind of PANEL_KINDS) {
       if (bumpedByAutoOpen[kind] && openState[kind] && !hasUnrequestedExpandedPanel(kind)) {
         if (!isKindExpanded(kind)) {
@@ -614,8 +713,8 @@
 
   function hasPanel(node) {
     return node instanceof Element &&
-      (node.matches(`${PANEL_TAG}, ytd-comments, [${TOGGLE_ATTRIBUTE}]`) ||
-       node.querySelector(`${PANEL_TAG}, ytd-comments`) !== null);
+      (node.matches(`${PANEL_TAG}, ytd-comments, [${TOGGLE_ATTRIBUTE}], ytd-section-list-renderer, ytd-settings-options-renderer, [data-ycc-settings-container]`) ||
+       node.querySelector(`${PANEL_TAG}, ytd-comments, ytd-section-list-renderer, ytd-settings-options-renderer, [data-ycc-settings-container]`) !== null);
   }
 
   const observer = new MutationObserver((records) => {
@@ -715,6 +814,7 @@
       "fixed-default-panels",
       "show-fixed-side-menu",
       "use-engagement-panel-for-structured-description",
+      "fixed-panel-expanded",
     ],
   });
 

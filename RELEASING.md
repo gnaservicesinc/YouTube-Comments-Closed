@@ -38,8 +38,8 @@ through the dashboard separately.
 3. Commit and push the changes to `main`, then tag that commit:
 
 ```sh
-git tag -a v1.1.3 -m 'Release 1.1.3'
-git push origin v1.1.3
+git tag -a v1.1.4 -m 'Release 1.1.4'
+git push origin v1.1.4
 ```
 
 The tag must exactly match the manifest and package version. The workflow stops

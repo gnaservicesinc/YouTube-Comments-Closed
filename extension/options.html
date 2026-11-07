@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YouTube Comments Closed — Settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="options-page">
+  <img src="icons/icon-48.png" width="48" height="48" alt="">
+  <h1>YouTube Comments Closed — Settings</h1>
+  <p>Choose how YouTube's Side Rail panels (<strong>Comments</strong>, <strong>Description</strong>, and <strong>Ask</strong>) behave when you load a video or move to the next one.</p>
+  <form id="settings-form">
+    <fieldset>
+      <legend>When moving to a new video</legend>
+      <label for="mode-always-closed" class="option-label">
+        <input type="radio" id="mode-always-closed" name="panelMode" value="always-closed" class="visually-hidden" checked>
+        <span><strong>Always start closed</strong> — start every video with Comments, Description, and Ask closed so the video gets maximum space</span>
+      </label>
+      <label for="mode-remember" class="option-label">
+        <input type="radio" id="mode-remember" name="panelMode" value="remember" class="visually-hidden">
+        <span><strong>Remember open panel</strong> — keep your opened panel across videos until you close it</span>
+      </label>
+    </fieldset>
+    <div id="save-status" aria-live="polite"></div>
+  </form>
+  <footer>
+    <span>YouTube Comments Closed · <span id="version-label">1.1.4</span></span>
+  </footer>
+  <script src="popup.js"></script>
+</body>
+</html>
