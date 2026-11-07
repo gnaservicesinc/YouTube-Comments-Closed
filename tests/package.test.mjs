@@ -10,6 +10,7 @@ test('Store ZIP contains all declared toolbar icons and popup assets with matchi
   const manifest = JSON.parse(await readFile(new URL('../extension/manifest.json', import.meta.url), 'utf8'));
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(manifest.version, pkg.version);
+  assert.equal(manifest.homepage_url, pkg.homepage);
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.permissions, undefined);
   assert.equal(manifest.host_permissions, undefined);

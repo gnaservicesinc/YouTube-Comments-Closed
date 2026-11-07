@@ -14,7 +14,8 @@ to enable the API, create an OAuth client, and obtain a refresh token for scope
 production for ongoing releases; Google's external testing-mode refresh tokens
 normally expire after seven days. Never paste credentials into an issue or commit.
 
-In this repository's **Settings → Secrets and variables → Actions**, add:
+In this repository's (`https://github.com/gnaservicesinc/YouTube-Comments-Closed`)
+**Settings → Secrets and variables → Actions**, add:
 
 | Type | Name | Value |
 | --- | --- | --- |

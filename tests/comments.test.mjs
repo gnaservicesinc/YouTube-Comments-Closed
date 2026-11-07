@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { COMMENTS, EXPANDED, HIDDEN, openFixture } from './fixtures.mjs';
+import { COMMENTS, EXPANDED, HIDDEN, SHORTS_COMMENTS, openFixture } from './fixtures.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let context;
@@ -355,4 +355,47 @@ test('lazy, moved and replaced inline comments keep exactly one working disclosu
   await page.evaluate(() => document.querySelector('#inline-host').append(document.createElement('ytd-comments')));
   await page.getByRole('button', { name: 'Hide comments', exact: true }).click();
   assert.equal(await page.locator('#inline-host ytd-comments').isVisible(), false);
+});
+
+test('modern Shorts reel-action-bar-view-model comment button opens, toggles closed, and reopens', async t => {
+  const page = await openFixture(context, t, { panels: [{ target: SHORTS_COMMENTS, visibility: HIDDEN }] }, '/shorts');
+  await page.locator('#reel-comments').click();
+  await page.evaluate(() => {
+    history.replaceState({}, '', '/shorts/first-reel');
+    document.dispatchEvent(new Event('yt-navigate-finish'));
+  });
+  await staysOpen(page);
+  await page.locator('#reel-comments').click();
+  await page.waitForFunction(hidden =>
+    document.querySelector('[data-test-key="comments"]')?.getAttribute('visibility') === hidden &&
+    !document.documentElement.hasAttribute('data-ycc-comments-open'), HIDDEN);
+  await page.locator('#reel-comments').click();
+  await staysOpen(page);
+});
+
+test('Watch Side Rail comment button and inline disclosure with hidden inline comments sync the Side Rail panel', async t => {
+  const page = await openFixture(context, t, { inlineHidden: true });
+  await closed(page);
+  await page.locator('#side-rail-comments').click();
+  await staysOpen(page);
+  assert.equal(await page.getByRole('button', { name: 'Hide comments', exact: true }).getAttribute('aria-expanded'), 'true');
+  await page.getByRole('button', { name: 'Hide comments', exact: true }).click();
+  await closed(page);
+  assert.equal(await page.getByRole('button', { name: 'Show comments', exact: true }).getAttribute('aria-expanded'), 'false');
+  await page.getByRole('button', { name: 'Show comments', exact: true }).click();
+  await staysOpen(page);
+});
+
+test('player quick-action comment button, comment teaser, and unlabeled action container openers allow comments', async t => {
+  const page = await openFixture(context, t, { panels: [{ visibility: HIDDEN }] });
+  await page.locator('#quick-action-comments').click();
+  await staysOpen(page);
+  await page.locator('[data-test-key="comments"] button').click();
+  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-ycc-comments-open'));
+  await page.locator('#teaser-button').click();
+  await staysOpen(page);
+  await page.locator('[data-test-key="comments"] button').click();
+  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-ycc-comments-open'));
+  await page.locator('#side-rail-unlabeled').click();
+  await staysOpen(page);
 });

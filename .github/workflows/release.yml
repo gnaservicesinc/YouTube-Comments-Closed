@@ -23,9 +23,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run package
-      - name: Note one-time publishing setup
-        if: startsWith(github.ref, 'refs/tags/v') && vars.CWS_PUBLISHER_ID == ''
-        run: echo 'Automatic Store publishing needs the one-time credentials in RELEASING.md. The tested ZIP is available in this run’s artifacts.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: chrome-web-store-package
@@ -33,24 +30,31 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') && vars.CWS_PUBLISHER_ID != ''
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
       group: chrome-web-store-publish
       cancel-in-progress: false
+    env:
+      CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID || secrets.CWS_PUBLISHER_ID }}
+      CWS_EXTENSION_ID: ecmhkbgdoeeicpohpleinhgmdfliedak
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
     steps:
+      - name: Note one-time publishing setup
+        if: env.CWS_PUBLISHER_ID == '' || env.CWS_CLIENT_ID == ''
+        run: echo 'Automatic Store publishing needs the one-time credentials in RELEASING.md. The tested ZIP is available in this run’s artifacts.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != ''
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != ''
         with:
           node-version: 22
       - run: npm run package
+        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != ''
       - name: Upload and submit for automatic publication after review
+        if: env.CWS_PUBLISHER_ID != '' && env.CWS_CLIENT_ID != ''
         run: npm run publish:store
-        env:
-          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
-          CWS_EXTENSION_ID: ecmhkbgdoeeicpohpleinhgmdfliedak
-          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
-          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
-          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}

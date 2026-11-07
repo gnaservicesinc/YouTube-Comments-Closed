@@ -5,7 +5,11 @@
 }
 
 :root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"],
-:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#engagement-panel-comments-section {
+:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#engagement-panel-comments-section,
+:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer[target-id="shorts-engagement-panel-comments-section"],
+:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#shorts-engagement-panel-comments-section,
+:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer[target-id="comments-section"],
+:root:not([data-ycc-comments-open]) ytd-engagement-panel-section-list-renderer#comments-section {
   visibility: hidden !important;
   pointer-events: none !important;
 }

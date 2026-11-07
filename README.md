@@ -37,4 +37,5 @@ controls and retries briefly. Native comment entry points stay visible, and
 trusted clicks or keyboard activation keep comments open for the current video.
 
 See [RELEASING.md](RELEASING.md) for tag-based publishing and its one-time
-Chrome Web Store credential setup.
+Chrome Web Store credential setup. Source code is hosted at
+https://github.com/gnaservicesinc/YouTube-Comments-Closed.

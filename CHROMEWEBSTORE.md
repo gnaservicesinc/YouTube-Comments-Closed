@@ -1,12 +1,12 @@
-# Chrome Web Store — YouTube Comments Closed 1.1.0
+# Chrome Web Store — YouTube Comments Closed 1.1.1
 
-Prepared October 16, 2026 for existing item `ecmhkbgdoeeicpohpleinhgmdfliedak`.
-The dashboard showed public version 1.0.0 before this update; the prior 1.0.1
-icon package had not been submitted. See RELEASING.md for release operations.
+Prepared for existing item `ecmhkbgdoeeicpohpleinhgmdfliedak`
+(repository: https://github.com/gnaservicesinc/YouTube-Comments-Closed).
+See RELEASING.md for release operations.
 
 ## Package and artwork
 
-Upload `dist/youtube-comments-closed-1.1.0-webstore.zip` to the existing item.
+Upload `dist/youtube-comments-closed-1.1.1-webstore.zip` to the existing item.
 The ZIP has `manifest.json` at its root and includes native-size icons for both
 the manifest and toolbar action, plus a small explanatory popup. Use
 `store-assets/store-icon-128.png` for the Store listing icon. The original
@@ -69,6 +69,12 @@ No account or credentials are required.
 
 ## Changes
 
+- 1.1.1: support modern YouTube ViewModel comment controls (Watch Side Rail
+  `yt-side-rail-view-model`, Shorts `reel-action-bar-view-model`, player quick
+  actions, and comment teaser) so clicking the comment button always opens
+  comments and toggles cleanly; sync inline Show/Hide comments with Side Rail
+  panels; update repository URL to
+  `https://github.com/gnaservicesinc/YouTube-Comments-Closed`.
 - 1.1.0: comments closed by default with deliberate opening; inline Show/Hide
   control; reliable document-start observer; sharper icons at 16/24/32/48/128px;
   explicit toolbar icon and popup; tag-based GitHub release workflow.
