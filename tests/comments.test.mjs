@@ -497,3 +497,62 @@ test('YouTube /account settings page renders the extension settings card and upd
   await page.locator('#ycc-setting-always-closed').check();
   assert.equal(await page.evaluate(() => localStorage.getItem('ycc-panel-mode')), 'always-closed');
 });
+
+test('clicking Show transcript inside the Description panel reveals the Transcript panel in Side Rail mode', async t => {
+  const page = await openFixture(context, t, {
+    sideRailDismissible: true,
+    panels: [
+      { key: 'description', target: DESCRIPTION, videoTitleHeader: true, visibility: EXPANDED },
+      { key: 'transcript', target: 'engagement-panel-searchable-transcript', visibility: HIDDEN },
+    ],
+  }, '/watch?v=nOE0w5lY5RY');
+
+  await page.evaluate(({ expanded, hidden }) => {
+    const watch = document.querySelector('ytd-watch-flexy');
+    watch.setAttribute('default-two-column-layout', '');
+    const columns = document.createElement('div');
+    columns.id = 'columns';
+    columns.className = 'ytd-watch-flexy';
+    const secondary = document.createElement('div');
+    secondary.id = 'secondary';
+    secondary.className = 'ytd-watch-flexy';
+    const host = document.querySelector('#panel-host');
+    secondary.append(host);
+    columns.append(secondary);
+    watch.append(columns);
+
+    const descPanel = document.querySelector('[data-test-key="description"]');
+    const transcriptPanel = document.querySelector('[data-test-key="transcript"]');
+    const showTranscriptBtn = document.createElement('button');
+    showTranscriptBtn.id = 'show-transcript-button';
+    showTranscriptBtn.type = 'button';
+    showTranscriptBtn.textContent = 'Show transcript';
+    showTranscriptBtn.addEventListener('click', () => {
+      descPanel.setAttribute('visibility', hidden);
+      transcriptPanel.setAttribute('visibility', expanded);
+    });
+    descPanel.querySelector('#content').append(showTranscriptBtn);
+  }, { expanded: EXPANDED, hidden: HIDDEN });
+
+  await closed(page, 'description');
+
+  // Open Description via the Side Rail button.
+  await page.locator('#side-rail-description').click();
+  await page.waitForFunction(expanded =>
+    document.querySelector('[data-test-key="description"]')?.getAttribute('visibility') === expanded &&
+    getComputedStyle(document.querySelector('#secondary')).visibility === 'visible', EXPANDED);
+
+  // Click Show transcript inside Description.
+  await page.locator('#show-transcript-button').click();
+  await page.waitForFunction(({ expanded, hidden }) => {
+    const desc = document.querySelector('[data-test-key="description"]');
+    const transcript = document.querySelector('[data-test-key="transcript"]');
+    const secondary = document.querySelector('#secondary');
+    return desc?.getAttribute('visibility') === hidden &&
+      transcript?.getAttribute('visibility') === expanded &&
+      document.documentElement.hasAttribute('data-ycc-other-panel-open') &&
+      getComputedStyle(secondary).visibility === 'visible' &&
+      getComputedStyle(secondary).opacity === '1' &&
+      getComputedStyle(transcript).visibility === 'visible';
+  }, { expanded: EXPANDED, hidden: HIDDEN });
+});

@@ -1,4 +1,4 @@
-# Chrome Web Store — YouTube Comments Closed 1.1.4
+# Chrome Web Store — YouTube Comments Closed 1.1.5
 
 Prepared for existing item `ecmhkbgdoeeicpohpleinhgmdfliedak`
 (repository: https://github.com/gnaservicesinc/YouTube-Comments-Closed).
@@ -6,7 +6,7 @@ See RELEASING.md for release operations.
 
 ## Package and artwork
 
-Upload `dist/youtube-comments-closed-1.1.4-webstore.zip` to the existing item.
+Upload `dist/youtube-comments-closed-1.1.5-webstore.zip` to the existing item.
 The ZIP has `manifest.json` at its root and includes native-size icons for both
 the manifest and toolbar action, plus a small explanatory popup. Use
 `store-assets/store-icon-128.png` for the Store listing icon. The original
@@ -69,6 +69,8 @@ No account or credentials are required.
 
 ## Changes
 
+- 1.1.5: fix Transcript and other non-managed engagement panels failing to
+  appear in Side Rail mode when opened from inside the Description panel.
 - 1.1.4: eliminate initial page-load Side Rail layout jitter (`#columns::after`
   and `.dismissible-panels-transitioning`) when panels start closed; add the
   panel mode setting to both the extension Settings page (`options.html`) and

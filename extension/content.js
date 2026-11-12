@@ -229,6 +229,13 @@
     return false;
   }
 
+  function hasOtherExpandedPanel() {
+    for (const panel of document.querySelectorAll(`${PANEL_TAG}[visibility="${EXPANDED}"]`)) {
+      if (panelKind(panel) === null) return true;
+    }
+    return false;
+  }
+
   function syncVideo() {
     const next = videoKey();
     if (next === video) return false;
@@ -406,6 +413,7 @@
     for (const kind of PANEL_KINDS) {
       document.documentElement?.toggleAttribute(OPEN_ATTRIBUTES[kind], openState[kind]);
     }
+    document.documentElement?.toggleAttribute("data-ycc-other-panel-open", hasOtherExpandedPanel());
     for (const comments of document.querySelectorAll("ytd-comments")) {
       if (comments.closest(PANEL_TAG)) continue;
       let button = toggles.get(comments);
@@ -525,7 +533,7 @@
   }
 
   function finishDismissibleTransition() {
-    if (PANEL_KINDS.some(kind => openState[kind])) return;
+    if (PANEL_KINDS.some(kind => openState[kind]) || hasOtherExpandedPanel()) return;
     const flexy = document.querySelector("ytd-watch-flexy.dismissible-panels-transitioning");
     const columns = flexy?.querySelector("#columns") ||
       document.querySelector("ytd-watch-flexy #columns.side-rail-transitioning");
@@ -564,7 +572,16 @@
     }
     const kind = clickControlKind(path);
     if (!kind) {
-      if (!path.some(node => node.matches(`${PANEL_TAG}, a[href]:not([href^="#"])`)) &&
+      if (path.some(node => node.matches(PANEL_TAG)) &&
+          path.some(node => node.matches("button, [role='button']"))) {
+        for (const k of PANEL_KINDS) {
+          openedAt[k] = 0;
+          rememberedUntil[k] = 0;
+          reopenOnToggleClose[k] = false;
+          bumpedByAutoOpen[k] = false;
+        }
+        lastActionClick = 0;
+      } else if (!path.some(node => node.matches(`${PANEL_TAG}, a[href]:not([href^="#"])`)) &&
           path.some(node => node.matches("button, [role='button'], [role='tab']")) &&
           path.some(node => node.matches(ACTION_CONTAINERS))) {
         lastActionClick = performance.now();
@@ -733,7 +750,16 @@
           if (record.attributeName === "visibility") {
             if (record.oldValue !== EXPANDED && nowExpanded) {
               attempts.delete(target);
-              if (kind && !openState[kind] && lastActionClick &&
+              if (!kind) {
+                for (const k of PANEL_KINDS) {
+                  if (!isKindExpanded(k)) openState[k] = false;
+                  openedAt[k] = 0;
+                  rememberedUntil[k] = 0;
+                  reopenOnToggleClose[k] = false;
+                  bumpedByAutoOpen[k] = false;
+                }
+                lastActionClick = 0;
+              } else if (!openState[kind] && lastActionClick &&
                   performance.now() - lastActionClick < 500) {
                 syncVideo();
                 for (const otherKind of PANEL_KINDS) {
@@ -755,7 +781,14 @@
               const wasScriptAttempt = attempts.has(target);
               attempts.delete(target);
               if (openState[kind] && !wasScriptAttempt) {
-                if (reopenOnToggleClose[kind] && performance.now() - openedAt[kind] <= 200) {
+                if (hasOtherExpandedPanel()) {
+                  openState[kind] = false;
+                  openedAt[kind] = 0;
+                  rememberedUntil[kind] = 0;
+                  reopenOnToggleClose[kind] = false;
+                  bumpedByAutoOpen[kind] = false;
+                  lastActionClick = 0;
+                } else if (reopenOnToggleClose[kind] && performance.now() - openedAt[kind] <= 200) {
                   reopenOnToggleClose[kind] = false;
                   openedAt[kind] = performance.now();
                   requestAnimationFrame(() => openPanel(kind));
